@@ -1,0 +1,44 @@
+{
+  "name": "collaborativecodingeditor",
+  "version": "0.0.1",
+  "description": "\"Proiectul nostru constă în dezvoltarea unui editor de cod colaborativ online, care permite utilizatorilor să lucreze împreună la proiecte de cod în timp real. Funcționalitățile principale includ sistemul de autentificare și înregistrare pentru utilizatori, un editor de cod cu evidențiere a sintaxei, comunicare în timp real prin chat, integrare cu sistemul de control al versiunilor Git și posibilitatea de a rula fragmente de cod. Scopul nostru este să oferim o platformă ușor de utilizat și eficientă pentru programatori de toate nivelele, care doresc să colaboreze la proiecte de cod într-un mediu online.\"",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CristiL75/CollaborativeCodingEditor.git"
+  },
+  "keywords": [
+    "colaborativ"
+  ],
+  "author": "Latcu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CristiL75/CollaborativeCodingEditor/issues"
+  },
+  "homepage": "https://github.com/CristiL75/CollaborativeCodingEditor#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "code": "^5.2.4",
+    "codemirror": "^5.65.16",
+    "compilex": "^0.7.4",
+    "cors": "^2.8.5",
+    "ejs": "^3.1.9",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "hbs": "^4.2.0",
+    "hps": "^1.1.1",
+    "html": "^1.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mirror": "^0.3.3",
+    "monaco-editor": "^0.47.0",
+    "mongodb": "^6.5.0",
+    "mongoose": "^8.2.3",
+    "nodemailer": "^6.9.12",
+    "nodemon": "^3.1.0",
+    "socket.io": "^4.7.5",
+    "ws": "^8.16.0"
+  }
+}

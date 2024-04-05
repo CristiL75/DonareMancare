@@ -1,0 +1,42 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="input" autocomplete="off" />
+        <!-- Add a receiver input field -->
+        <input id="receiver" autocomplete="off" placeholder="Receiver username"/>
+        <button>Send</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
+        const receiverInput = document.getElementById('receiver'); // New receiver input field
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (input.value && receiverInput.value) { // Check if both input fields are filled
+                socket.emit('chat message', { sender: 'Sender', receiver: receiverInput.value, message: input.value }); // Send message with receiver info
+                input.value = '';
+            }
+        });
+
+        socket.on('chat message', function(data) {
+            const messages = document.getElementById('messages');
+            const item = document.createElement('li');
+            item.textContent = `${data.sender}: ${data.message}`;
+            messages.appendChild(item);
+        });
+    </script>
+</body>
+</html>

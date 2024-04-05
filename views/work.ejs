@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work</title>
+    <link rel="stylesheet" href="/codemirror/lib/codemirror.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/material-darker.min.css"> <!-- Theme link -->
+    <style>
+        /* Your CSS styles here */
+    </style>
+</head>
+<body>
+    <div id="codeEditor">
+        <h1>Code Editor</h1>
+        <div id="codeArea"></div>
+        <label for="language">Select programming language:</label>
+        <select id="language" name="language">
+            <option value="C">C</option>
+            <option value="python">Python</option>
+            <option value="java">Java</option>
+        </select>
+        <button type="button" onclick="compileAndRun()">Compile & Run</button>
+        <div id="output"></div>
+        <p>Session code: <%= sessionCode %></p> <!-- Assuming you pass sessionCode as a variable -->
+    </div>
+
+    <script src="/codemirror/lib/codemirror.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+    <script>
+        // Initialize the CodeMirror editor
+        const socket = io('http://localhost:5000');
+        const editor = CodeMirror(document.getElementById('codeArea'), {
+            lineNumbers: true,
+            mode: 'text/x-java', // Default mode
+            theme: 'material-darker' // Theme
+        });
+        socket.on('codeUpdate', ({ code, username }) => {
+            // Display the received code in the editor
+            editor.setValue(code);
+        
+            // Optionally, display a notification or other UI element indicating the user who made the change
+            // For example, you can update a div element to show the username who made the change
+        });
+        // Initialize Socket.IO connection
+        // Function to compile and run code
+        function compileAndRun() {
+            const code = editor.getValue();
+            const language = document.getElementById('language').value;
+            const sessionCode = '<%= sessionCode%>';
+            const username = '<%= username %>';
+
+            console.log('Code:', code);
+            console.log('Language:', language);
+            console.log('Session Code:', sessionCode);
+
+            fetch('/compileAndRun', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code, language })
+            })
+            .then(response => response.text())
+            .then(output => {
+                document.getElementById('output').innerText = output; // Display output
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('output').innerText = 'An error occurred. Please try again.';
+            });
+            socket.emit('codeUpdate', { code, username });
+        }
+
+        // Function to send chat message
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value.trim();
+            if (message !== '') {
+                const username = document.getElementById('username').innerText.trim();
+                const messageWithUsername = `${username}: ${message}`; // Concatenate username and message
+                socket.emit('chatMessage', messageWithUsername);
+                document.getElementById('messageInput').value = '';
+            }
+        }
+
+        // Function to display received chat message
+        function displayMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            chatMessages.appendChild(messageElement);
+        }
+
+        // Event listener for receiving chat messages
+        socket.on('chatMessage', message => {
+            displayMessage(message);
+        });
+
+        // Event listener for receiving code changes
+        socket.on('codeUpdate', newCode => {
+            editor.setValue(newCode);
+        });
+
+        // Event listener for detecting code changes and sending them to the server
+      // Event listener for detecting code changes and sending them to the server
+    editor.on('change', () => {
+    const newCode = editor.getValue();
+    const username = document.getElementById('username').innerText.trim();
+    socket.emit('codeUpdate', { code: newCode, username });
+    });
+
+    </script>
+
+    <div id="chatBox">
+        <h2>Chat</h2>
+        <div id="chatMessages"></div>
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+        <div id="usernameDisplay">Logged in as: <span id="username"><%= username %></span></div>
+    </div>
+</body>
+</html>

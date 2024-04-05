@@ -1,0 +1,48 @@
+<!-- home.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/stylehome.css">
+    <title>Home</title>
+</head>
+<body>
+    <!-- Display the username in a tab or sidebar -->
+    <nav>
+        <ul>
+            <li><a href="#"> <%= username %>  </a></li> 
+            <li><a href="./createSession" id="createSessionBtn">Create Session</a></li>
+            <li><a href="#" id="joinSessionBtn">Join Session</a></li> <!-- Keep the button as it is -->
+            <li><a href="/chat" id="chatButton">Chat</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hidden popup/modal for entering session code -->
+    <div id="sessionCodePopup" style="display: none;">
+        <input type="text" id="sessionCodeInput" placeholder="Enter session code">
+        <button onclick="joinSession()">Join</button>
+        <p id="sessionCodeError" style="color: red; display: none;">Invalid session code</p>
+    </div>
+
+    <script>
+        // Function to display the session code input popup/modal
+        document.getElementById('joinSessionBtn').addEventListener('click', function() {
+            document.getElementById('sessionCodePopup').style.display = 'block';
+        });
+
+        // Function to handle joining session
+        function joinSession() {
+            const sessionCode = document.getElementById('sessionCodeInput').value;
+            // You can add further validation if needed
+            if (sessionCode.trim() !== '') {
+                // Redirect to the work page with the session code
+                window.location.href = `/work/${sessionCode}`;
+            } else {
+                // Display error message if session code is not provided
+                document.getElementById('sessionCodeError').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
