@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acasa</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <style>
+        #map{
+            height:400px;
+            margin-bottom:20px;
+        }
+        .container{
+            max-width:600px;
+            margin:0 auto;
+            padding:20px;
+        }
+        .address-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .food-list {
+            list-style-type: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <% if (userType === 'donator') { %>
+        <h1>Bun venit, donator!</h1>
+        <div class="container">
+            <h2>Puncte de colectare:</h2>
+            <div id="map"></div>
+            <h2>Alimente necesare:</h2>
+            <ul id="neededFoods" class="food-list"></ul>
+            <h2>Sugestii pentru firmele intermediare:</h2>
+            <input type="text" id="suggestion" placeholder="Introduceți sugestia pentru beneficiar">
+            <button onclick="sendSuggestion()">Trimite sugestia</button>
+            <h2>Sugestii AI:</h2>
+            <ul id="aiSuggestions" class="food-list"></ul>
+        </div>
+    <% } else { %>
+        <p>Acces restricționat. Trebuie să fii donator pentru a accesa această pagină.</p>
+    <% } %>
+    <p>Token: <%= token %></p>
+    <p>User Type: <%= userType %></p> <!-- Afișează userType folosind <%= %> -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script>
+        var map = L.map('map').setView([45.7538355, 21.2257474], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        async function getCollectionPoints() {
+            try {
+                const response = await fetch('/getCollectionPoints');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const collectionPoints = await response.json();
+                console.log('Collection points:', collectionPoints);
+                if (collectionPoints.length > 0) {
+                    displayCollectionPoints(collectionPoints);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
+        }
+        
+        async function displayCollectionPoints(collectionPoints) {
+            collectionPoints.forEach(function (point) {
+                if (point.lat !== undefined && point.lng !== undefined) {
+                    var popupContent = `<b>Adresă:</b> ${point.address}<br><b>Latitudine:</b> ${point.lat}<br><b>Longitudine:</b> ${point.lng}`;
+                    L.marker([point.lat, point.lng])
+                        .addTo(map)
+                        .bindPopup(popupContent)
+                        .openPopup();
+                }
+            });
+            if (collectionPoints.length > 0 && collectionPoints[0].lat !== undefined && collectionPoints[0].lng !== undefined) {
+                map.setView([collectionPoints[0].lat, collectionPoints[0].lng], 13);
+            }
+        }
+        
+
+        
+        async function getNeededFoods(){
+            try{
+                const response = await fetch('/getNeededFoods');
+                const neededFoods = await response.json();
+                displayNeededFoods(neededFoods);
+                displayAiSuggestions(neededFoods);
+            }
+            catch(error){
+                console.error('Eroare la obtinerea alimentelor necesare:',error);
+            }
+        }
+
+        getCollectionPoints();
+
+        function displayNeededFoods(foods){
+            var list = document.getElementById('neededFoods');
+            list.innerHTML = '';
+            foods.forEach(function(food){
+                var li = document.createElement('li');
+                li.textContent = food.food;
+                list.appendChild(li);
+            });
+        }
+
+      
+
+        getNeededFoods();
+
+      
+        function sendSuggestion(){
+            var suggestion = document.getElementById('suggestion').value;
+            if(suggestion.trim() != ''){
+                fetch('/sendSuggestion',{
+                    method:'POST',
+                    headers:{
+                        'Content-Type':'application/json'
+                    },
+                    body:JSON.stringify({suggestion:suggestion})
+                })
+                .then(response=>response.json())
+                .then(data=>{
+                    console.log('Sugestia a fost trimisa cu succes!', data);
+                    document.getElementById('suggestion').value = '';
+                })
+                .catch(error=>{
+                    console.error('Eroare la trimiterea sugestiei:', error);
+                })
+            }
+        }
+
+
+        function displayAiSuggestions(neededFoods){
+            var donatedFoods = [];
+            var foodList = document.getElementById('neededFoods').getElementsByTagName('li');
+            for (var i = 0; i < foodList.length; i++) {
+                donatedFoods.push(foodList[i].textContent.toLowerCase());
+            }
+            const aiSuggestedFoods = getAiFoodSuggestions(neededFoods, donatedFoods);
+            var list = document.getElementById('aiSuggestions');
+            list.innerHTML = '';
+            aiSuggestedFoods.forEach(function(food){
+                var li = document.createElement('li');
+                li.textContent = food;
+                list.appendChild(li);
+            });
+        }
+
+
+function getAiFoodSuggestions(neededFoods, donatedFoods) {
+    const aiSuggestedFoods = [
+      "paste făinoase",
+      "orez",
+      "ulei",
+      "zahăr",
+      "făină",
+      "lapte",
+      "fasole",
+      "ciocolată",
+      "ceai",
+      "cafea",
+      "cereale",
+      "miere",
+      "sare",
+      "condimente",
+      "suc de fructe",
+      "suc de legume",
+      "biscuiți",
+      "căpșuni",
+      "banane",
+      "mere",
+      "pâine",
+      "cârnați",
+      "brânză",
+      "ouă",
+      "cartofi",
+      "morcovi",
+      "roșii",
+      "varză",
+      "ardei",
+      "pui",
+      "porc",
+      "vita",
+      "pește",
+      "fructe de mare",
+      "fructe uscate",
+      "nuci",
+      "seminte",
+      "patiserii",
+      "lapte praf",
+      "iaurt",
+      "brânză topită",
+      "cașcaval",
+      "unt",
+      "gem",
+      "compot"
+    ];
+  
+    const uniqueSuggestedFoods = aiSuggestedFoods.filter(
+      food =>
+        !donatedFoods.includes(food.toLowerCase()) &&
+        !neededFoods.some(neededFood => neededFood.food.toLowerCase() === food.toLowerCase())
+    );
+  
+    return uniqueSuggestedFoods;
+  }
+  
+
+    </script>
+</body>
+</html>

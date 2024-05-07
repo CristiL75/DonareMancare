@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adresa de Primire a Donațiilor</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <style>
+        #map{
+            height:400px;
+            margin-bottom:20px;
+        }
+        .container{
+            max-width:600px;
+            margin:0 auto;
+            padding:20px;
+        }
+        .address-list {
+            list-style-type: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Adresa de Primire a Donațiilor</h1>
+        <input type="text" id="addressInput" placeholder="Introduceți adresa de primire a donațiilor">
+        <button onclick="showMap()">Afișează Locația</button>
+        <div id="map"></div>
+        <p id="address"></p>
+        <h2>Adrese salvate:</h2>
+        <ul id="addressList" class="address-list"></ul>
+        <h2>Alimente donate:</h2>
+        <input type = "text" id = "foodInput" placeholder = "Introduceti alimentelul de care aveti nevoie">
+        <button onclick = "addFood()">Adauga aliment</button>
+        <ul id = "foodList" class = "food-list"></ul>
+    </div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script>
+        var map = L.map('map').setView([0,0],13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.marker([51.5, -0.09]).addTo(map)
+    .bindPopup('A pretty CSS popup.<br> Easily customizable.')
+    .openPopup();
+
+        var addressList = [];
+        var foodList = [];
+
+        function showMap(){
+            var address = document.getElementById('addressInput').value;
+
+            var geocoder = L.Control.geocoder({
+                defaultMarkGeocode:false
+            })
+            .on('markgeocode', function(e) {
+                var latlng = e.geocode.center;
+                map.flyTo(latlng, 15);
+                L.marker(latlng).addTo(map)
+                    .bindPopup(address)
+                    .openPopup();
+                
+                addressList.push(address);
+                displayAddressList();
+                sendAddressList();
+
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('addressInput').value = data.display_name;
+                })
+                .catch(error => {
+                    console.error('Eroare la obținerea adresei:', error);
+                });
+            })
+            .addTo(map);
+         
+            geocoder.geocode(address);
+            
+        
+        }
+        function sendAddressList() {
+            fetch('/salvareAdrese', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ addresses: addressList })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Adresele au fost trimise cu succes!', data);
+                // Aici poți adăuga orice logică suplimentară necesară după trimiterea adresele către backend
+            })
+            .catch(error => {
+                console.error('Eroare la trimiterea adresele către backend:', error);
+            });
+        }
+
+        function displayAddressList() {
+            var list = document.getElementById('addressList');
+            list.innerHTML = '';
+            addressList.forEach(function(address) {
+                var li = document.createElement('li');
+                li.textContent = address;
+                list.appendChild(li);
+            });
+       
+        }
+        function addFood(){
+            var food = document.getElementById('foodInput').value;
+            if(food.trim()!=''){
+                foodList.push(food);
+                console.log(food);
+                displayFoodList();
+                sendFoodList();
+                document.getElementById('foodInput').value = '';
+            }
+        }
+        function removeFood(index){
+            foodList.splice(index, 1);
+            displayFoodList();
+            sendFoodList();
+        }
+        function sendFoodList(){
+            fetch('/salvareAlimente',{
+                method:'POST',
+                headers:{
+                    'Content-Type':'application/json'
+                },
+                body:JSON.stringify({foods:foodList})
+            })
+            .then(response=>response.json())
+            .then(data=>{
+                console.log('Alimentele au fost trimise cu succes!', data)
+            })
+            .catch(error=>{
+                console.error('Eroare la trimiterea alimentelor catre backend')
+            })
+        }
+        function displayFoodList(){
+            var list = document.getElementById('foodList');
+            list.innerHTML = '';
+            foodList.forEach(function(food,index){
+                var li = document.createElement('li');
+                li.textContent = food;
+                var button = document.createElement('button');
+                button.textContent = 'Sterge';
+                button.onclick = function(){
+                    removeFood(index);
+                };
+                li.appendChild(button);
+                list.appendChild(li);
+            })
+        }
+    </script>
+</body>
+</html>

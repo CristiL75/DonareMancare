@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
 
 mongoose
-  .connect("mongodb://127.0.0.1:27017/users")
+  .connect("mongodb://127.0.0.1:27017/monitoring_app")
   .then(() => {
-    console.log("mongoose connected");
+    console.log("MongoDB connected successfully");
   })
-  .catch((e) => {
-    console.log("failed");
+  .catch((error) => {
+    console.error("Error connecting to MongoDB:", error);
   });
 
-const logInSchema = new mongoose.Schema({
+const AutentificareSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
@@ -22,22 +22,56 @@ const logInSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  userType: {
+    type: String,
+    enum: ['beneficiar', 'donator'], 
+    default: 'beneficiar' 
+} 
 });
 
-const LogInCollection = mongoose.model("users", logInSchema);
+const AutentificareCollection = mongoose.model("AutentificareCollection", AutentificareSchema);
 
-const codingSessionSchema = new mongoose.Schema({
-  sessionCode: { type: String, required: true, unique: true },
-  sessionName: { type: String, required: true },
-  creatorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+const adreseSchema = new mongoose.Schema({
+  address: String,
+  latlng: {
+    type: {
+      lat: Number,
+      lng: Number
+    },
+    required: true
+  }
 });
 
-const CodingSessionCollection = mongoose.model(
-  "CodingSession",
-  codingSessionSchema
+const AdreseCollection = mongoose.model("AdreseCollection", adreseSchema);
+
+const foodSchema = new mongoose.Schema({
+  food: String,
+});
+
+
+
+const FoodCollection = mongoose.model("Alimente", foodSchema);
+
+const suggestionSchema = new mongoose.Schema({
+  suggestion: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected'], // Adaugă un enum pentru statusurile sugestiilor
+    default: 'pending'
+  }
+});
+
+const SuggestionsCollection = mongoose.model(
+  "SuggestionsCollection",
+  suggestionSchema
 );
 
 module.exports = {
-  LogInCollection,
-  CodingSessionCollection,
-};
+  AutentificareCollection,
+  AdreseCollection,
+  FoodCollection,
+  SuggestionsCollection,
+}; 

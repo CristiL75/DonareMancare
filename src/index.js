@@ -1,130 +1,74 @@
+const session = require("express-session");
 const express = require("express");
-const http = require('http');
-const socketIo = require('socket.io');
+const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
-const crypto = require('crypto');
-const {LogInCollection, CodingSessionCollection} = require('C:/Users/OWNER/Desktop/collaborativecodingeditor/src/mongo.js');
-const router = express.Router();
-const fs = require('fs');
-const session = require('express-session');
+
+const { AutentificareCollection, AdreseCollection, FoodCollection,SuggestionsCollection } = require("./mongo.js");
+
+
+
 const app = express();
+const PORT = 5000;
 
-const server = http.createServer(app);
-const io = socketIo(server);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// View engine setup
-app.set('view engine', 'ejs');
-app.use(express.static("public"));
-app.use(express.static('node_modules'));
-
+const jwt = require('jsonwebtoken');
 
 app.use(session({
-    secret: 'your-secret-key', // Change this to a secret key for session encryption
+    secret: 'secret-key',
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: true
 }));
 
-app.get("/home", (req, res) => {
-    const username = req.session.username;
-    res.render("home",{username}); 
-})
+app.use(express.static("public"));
+app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-
-
-function generateSessionCode() {
-    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let sessionCode = '';
-    for (let i = 0; i < 6; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        sessionCode += characters[randomIndex];
-    }
-    return sessionCode;
+function generateToken(user) {
+    const payload = {
+        id: user.id,
+        username: user.name,
+        userType: user.userType
+    };
+    const options = {
+        expiresIn: '10d' 
+    };
+    return jwt.sign(payload, 'secret-key', options);
 }
 
-
-let sessions = [];
-
-
-router.post('/createSession', (req, res) => {
-  const { userId, sessionName } = req.body;
-  const sessionCode = generateSessionCode(); // You need to implement this function
-  const session = { sessionCode, sessionName, creatorId: userId };
-  sessions.push({ sessionCode, sessionName, creatorId: userId });
-  res.status(201).json({ sessionCode });
-});
-
-
-
-app.get('/createSession', async (req, res) => {
-    try {
-
-        const sessionCode = generateSessionCode();
-        const sessionName = "New Coding Session";
-
-        const newSession = new CodingSessionCollection({
-            sessionCode: sessionCode,
-            sessionName: sessionName
-        });
-
-
-        await newSession.save();
-
-        res.redirect(`/work/${sessionCode}`);
-    } catch (error) {
-
-        console.error('Error creating session:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-router.post('session/join', (req, res) => {
-    const { sessionCode } = req.body;
-    const session = sessions.find(session => session.sessionCode === sessionCode);
-    if (session) {
-      res.json(session);
-    } else {
-      res.status(404).json({ error: 'Session not found' });
-    }
-  });
-  
-
-
-
 app.get("/", (req, res) => {
-    res.render("login");
+    res.render("autentificare");
 });
 
-app.get("/signup", (req, res) => {
-    res.render("signup");
+app.get("/inregistrare", (req, res) => {
+    res.render("inregistrare");
 });
 
-app.post("/signup", async (req, res) => {
+app.post("/inregistrare", async (req, res) => {
     const data = {
         email: req.body.email,
         name: req.body.username,
+        userType: req.body.userType,
         password: req.body.password
     };
 
-    console.log("Received signup request with data:", data);
+    console.log("Am primit datele:", data);
 
     try {
         if (!data.email || !data.name || !data.password) {
             return res.status(400).send("Missing required fields");
         }
 
-        const existingUser = await LogInCollection.findOne({ name: data.name });
+        const existingUser = await AutentificareCollection.findOne({ name: data.name });
 
         if (existingUser) {
-            return res.send("Username already used");
+            return res.send("Username already in use");
         } else {
             const hashedPassword = await bcrypt.hash(data.password, 10);
             data.password = hashedPassword;
 
-            const userData = await LogInCollection.create(data);
-            console.log("User data inserted:", userData);
+            const newUser = await AutentificareCollection.create(data);
+            console.log("User data inserted:", newUser);
+            const token = generateToken(newUser);
 
             return res.redirect("/");
         }
@@ -134,136 +78,208 @@ app.post("/signup", async (req, res) => {
     }
 });
 
-
-
-app.post("/login", async (req, res) => {
-    const {email, password } = req.body;
+app.post("/autentificare", async (req, res) => {
+    const { email, password } = req.body;
 
     try {
-        const userData = await LogInCollection.findOne({ email });
-        console.log("User Data:", userData);
+        const userData = await AutentificareCollection.findOne({ email });
+
         if (!userData) {
-            return res.send("Username cannot be found");
+            return res.send("Username not found");
         }
-        
+
         const isPasswordMatch = await bcrypt.compare(password, userData.password);
-        if (isPasswordMatch) { 
+
+        if (isPasswordMatch) {
             req.session.username = userData.name;
-            return res.redirect("/home");
+            req.session.userType = userData.userType;
+            const token = generateToken(userData);
+
+            if (userData.userType === 'beneficiar') {
+                res.redirect("/acasaBeneficiar?token=" + token);
+            } else if (userData.userType === 'donator') {
+                res.redirect("/acasaDonator?token=" + token);
+            } else {
+                res.send("Try again!");
+            }
         } else {
             return res.send("Wrong password");
         }
     } catch (error) {
         console.error(error);
-        return res.send("Error authenticating user");
+        return res.send("Error logging in");
     }
 });
 
-app.get("/work/:sessionId", async (req, res) => {
-    const { sessionId } = req.params;
+app.get("/acasaBeneficiar", (req, res) => {
+    const userType = req.session.userType;
+    res.render("acasaBeneficiar", { token: req.query.token, userType: userType });
+});
+
+app.get("/acasaDonator", (req, res) => {
+    const userType = req.session.userType;
+    if (!userType) {
+        return res.send("UserType missing in session");
+    }
+    res.render("acasaDonator", { token: req.query.token, userType: userType });
+});
+
+app.get("/adresaDonatii", (req, res) => {
+    res.render("adresaDonatii");
+});
+
+app.post("/salvareAdrese", async (req, res) => {
+    const coordinates = req.body.coordinates;
 
     try {
-        // Query the database to find the coding session with the given session ID
-        const codingSession = await CodingSessionCollection.findOne({
-            sessionCode: sessionId,
-        });
-
-        // Check if the coding session exists
-        if (!codingSession) {
-            // If the session doesn't exist, return a 404 Not Found response
-            return res.status(404).send("Session not found");
-        }
-        const username = req.session.username;
-        // Assuming you have the username available in the request object
-        console.log(username);
-
-
-        // Render the "work" view (or workspace) with the session details
-        res.render("work", { username, sessionCode: sessionId });
+        const adreseSalvate = await AdreseCollection.insertMany(coordinates);
+        console.log("Adresele au fost salvate cu succes:", adreseSalvate);
+        res.json({ message: "Adresele au fost salvate cu succes!" });
     } catch (error) {
-        // If an error occurs, log the error and return a 500 Internal Server Error response
-        console.error("Error retrieving coding session:", error);
-        res.status(500).send("Internal Server Error");
+        console.error("Eroare la salvarea adreselor:", error);
+        res.status(500).json({ message: "Eroare la salvarea adreselor!" });
     }
 });
-const { exec } = require('child_process');
 
-// Route handler for compiling and running code
-
-// Route handler for compiling and running code
-app.all('/compileAndRun', (req, res) => {
-    const { code, language } = req.body;
-
-    console.log('Received code:', code);
-
-    let fileName, compileCommand, runCommand;
-    if (language === 'java') {
-        fileName = 'Main.java';
-        compileCommand = 'javac Main.java';
-        runCommand = 'java Main';
-    } else if (language === 'python') {
-        fileName = 'script.py';
-        compileCommand = null; // Python nu necesită compilare separată
-        runCommand = 'python script.py';
-    } else if (language === 'c') {
-        fileName = 'main.c';
-        compileCommand = 'gcc -o main main.c';
-        runCommand = './main';
-    } else {
-        return res.status(400).send('Unsupported language');
+app.get('/getCollectionPoints', async (req, res) => {
+    try {
+        const collectionPoints = await AdreseCollection.find({});
+        const formattedCollectionPoints = collectionPoints.map(point => ({
+            address: point.address,
+            lat: point.latlng.lat,
+            lng: point.latlng.lng
+        }));
+        res.json(formattedCollectionPoints);
+    } catch (error) {
+        console.error('Eroare la obtinerea punctelor de colectare:', error);
+        res.status(500).json({ message: 'Eroare la obtinerea punctelor de colectare' });
     }
+});
 
-    // Write the code into the corresponding file
-    fs.writeFile(fileName, code, (err) => {
-        if (err) {
-            console.error('Error writing code to file:', err);
-            return res.status(500).send('Error writing code to file');
+app.get('/getNeededFoods', async (req, res) => {
+    try {
+        const neededFoods = await FoodCollection.find({});
+        res.json(neededFoods);
+    } catch (error) {
+        console.error('Eroare la obtinerea alimentelor necesare:', error);
+        res.status(500).json({ message: 'Eroare la obtinerea alimentelor necesare' });
+    }
+});
+
+app.post('/sendSuggestion', async (req, res) => {
+    try {
+        const { suggestion } = req.body;
+        if (!suggestion) {
+            return res.status(400).json({ message: 'Sugestia lipsește' });
         }
+        const newSuggestion = await SuggestionsCollection.create({ suggestion });
+        console.log('Sugestie salvată:', newSuggestion);
+        res.json({ message: 'Sugestia a fost trimisă și salvată cu succes!' });
+    } catch (error) {
+        console.error('Eroare la trimiterea sugestiei:', error);
+        res.status(500).json({ message: 'Eroare la trimiterea sugestiei' });
+    }
+});
 
-        console.log('Code written to file:', fileName);
+app.get('/getSuggestions', async (req, res) => {
+    try {
+        const suggestions = await SuggestionsCollection.find({ status: 'pending' }); // Selectează doar sugestiile cu statusul 'pending'
+        res.json(suggestions);
+    } catch (error) {
+        console.error('Eroare la obținerea sugestiilor:', error);
+        res.status(500).json({ message: 'Eroare la obținerea sugestiilor' });
+    }
+});
 
-        if (compileCommand) {
-            exec(compileCommand, (err, stdout, stderr) => {
-                if (err) {
-                    return res.send(stderr);
-                }
-                exec(runCommand, (err, stdout, stderr) => {
-                    if (err) {
-                        return res.send(stderr);
-                    }
-                    res.send(stdout);
-                });
-            });
+
+app.post('/acceptSuggestion', async (req, res) => {
+    try {
+        const { suggestionId, suggestion } = req.body;
+
+        if (!suggestionId || !suggestion) {
+            return res.status(400).json({ message: 'SuggestionId și suggestion sunt necesare.' });
+        }
+        
+        // Actualizează statusul sugestiei la 'accepted' și adaugă alimentul la lista de alimente donate
+        const updatedSuggestion = await SuggestionsCollection.findByIdAndUpdate(
+            suggestionId,
+            { 
+                status: 'accepted',
+                $addToSet: { foods: suggestion } // Adaugă alimentul la lista de alimente donate
+            },
+            { new: true }
+        );
+        
+        res.json({ message: 'Sugestia a fost acceptată și alimentul a fost adăugat la lista de alimente donate!', suggestion: updatedSuggestion });
+    } catch (error) {
+        console.error('Eroare la acceptarea sugestiei:', error);
+        res.status(500).json({ message: 'Eroare la acceptarea sugestiei' });
+    }
+});
+
+
+
+app.post('/rejectSuggestion', async (req, res) => {
+    try {
+        const { suggestionId } = req.body;
+        const updatedSuggestion = await SuggestionsCollection.findByIdAndUpdate(
+            suggestionId,
+            { status: 'rejected' }, // Actualizează statusul sugestiei la 'rejected'
+            { new: true }
+        );
+        res.json({ message: 'Sugestia a fost respinsă!', suggestion: updatedSuggestion });
+    } catch (error) {
+        console.error('Eroare la respingerea sugestiei:', error);
+        res.status(500).json({ message: 'Eroare la respingerea sugestiei' });
+    }
+});
+
+app.post("/salvareAlimente", async (req, res) => {
+    const foods = req.body.foods;
+
+    try {
+        const insertedFoods = await FoodCollection.insertMany(foods.map(food => ({ food: food })));
+        console.log("Alimentele au fost salvate cu succes:", insertedFoods);
+        res.json({ message: "Alimentele au fost salvate cu succes!" });
+    } catch (error) {
+        console.error("Eroare la salvarea alimentelor:", error);
+        res.status(500).json({ message: "Eroare la salvarea alimentelor!" });
+    }
+});
+
+app.post('/removeNeededFood', async (req, res) => {
+    try {
+        const removedFood = req.body.food;
+        console.log('Alimentul primit pentru ștergere:', removedFood);
+        // Căutăm în baza de date și ștergem toate alimentele cu numele primit
+        const result = await FoodCollection.deleteMany({ food: removedFood });
+        if (result.deletedCount > 0) {
+            res.json({ message: 'Alimentele au fost șterse din lista de alimente necesare' });
         } else {
-            exec(runCommand, (err, stdout, stderr) => {
-                if (err) {
-                    return res.send(stderr);
-                }
-                res.send(stdout);
-            });
+            res.status(404).json({ message: 'Alimentul nu a fost găsit în lista de alimente necesare' });
         }
-    });
+    } catch (error) {
+        console.error('Eroare la ștergerea alimentului din lista de alimente necesare:', error);
+        res.status(500).json({ message: 'Eroare la ștergerea alimentului din lista de alimente necesare' });
+    }
 });
 
 
 
 
-// Socket.IO connection handling
-io.on('connection',(socket)=>{
-    console.log('A user connected');
-    socket.on('chatMessage',(message)=>{
-        io.emit('chatMessage', message);
-    });
-    socket.on('codeUpdate', ({ code, username }) => {
-        // Broadcast the updated code along with the username to all connected clients
-        io.emit('codeUpdate', { code, username });
-    });
-    socket.on('disconnect', () => {
-        console.log('User disconnected');
-    });
-})
-// Server setup
+app.get('/getFoodList', async (req, res) => {
+    try {
+        const foods = await FoodCollection.find({});
+        res.json({ foods });
+    } catch (error) {
+        console.error('Eroare la obținerea listei de alimente:', error);
+        res.status(500).json({ message: 'Eroare la obținerea listei de alimente' });
+    }
+});
+
+
+
 const port = process.env.PORT || 5000;
-server.listen(port, () => {
+app.listen(port, () => {
     console.log(`Server running on Port: ${port}`);
 });
