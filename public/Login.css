@@ -1,0 +1,62 @@
+body {
+    background-image: url('BackgroundLogin.png');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: 100% 100%;
+}
+.autentificare-container{
+    margin-left: 1000px;
+    background-color: #fff; /* Culoarea de fundal */
+    border-radius: 5px; /* Border radius pentru colțuri rotunjite */
+    padding: 20px; /* Spațiul interior al containerului */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Umbra */
+    width: 250px; 
+}
+header {
+    margin-top: 150px;
+    margin-left: 1050px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    color: #fff;
+}
+p{
+    margin-left: 1060px;
+    color: #ed3f00;
+}
+a{
+    margin-left: 1075px;
+    display: block;
+    color: #006cdf;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    color: #006cdf;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* Asigură că padding-ul este inclus în lățimea elementului */
+    margin-bottom: 10px; /* Spațiu între câmpuri */
+    color: #006cdf;
+}
+
+button[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    background-color: #006cdf;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
