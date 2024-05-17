@@ -48,5 +48,5 @@ button[type="submit"] {
     transition:background-color 0.3 ease;
 }
 button[type="submit"]:hover{
-    background-color:#00ccc;
+    background-color:#ccc;
 }

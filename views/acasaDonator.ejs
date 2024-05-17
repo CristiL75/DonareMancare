@@ -4,28 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acasa</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel = "stylesheet" href = "donatorHome.css">
+    <!--<link rel="stylesheet" href="styles.css">-->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <style>
-        #map{
-            height:400px;
-            margin-bottom:20px;
-        }
-        .container{
-            max-width:600px;
-            margin:0 auto;
-            padding:20px;
-        }
-        .address-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .food-list {
-            list-style-type: none;
-            padding: 0;
-        }
-    </style>
 </head>
 <body>
     <% if (userType === 'donator') { %>
@@ -38,14 +20,14 @@
             <h2>Sugestii pentru firmele intermediare:</h2>
             <input type="text" id="suggestion" placeholder="Introduceți sugestia pentru beneficiar">
             <button onclick="sendSuggestion()">Trimite sugestia</button>
-            <h2>Sugestii AI:</h2>
+            <h2>Sugestii de alimente pentru donat:</h2>
             <ul id="aiSuggestions" class="food-list"></ul>
         </div>
     <% } else { %>
         <p>Acces restricționat. Trebuie să fii donator pentru a accesa această pagină.</p>
     <% } %>
-    <p>Token: <%= token %></p>
-    <p>User Type: <%= userType %></p> <!-- Afișează userType folosind <%= %> -->
+    <!--<p>Token: <%= token %></p>
+    <p>User Type: <%= userType %></p> Afișează userType folosind <%= %> -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
