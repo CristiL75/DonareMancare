@@ -4,40 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acasa</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel = "stylesheet" href = "beneficiarHome.css">
+    <!--<link rel="stylesheet" href="styles.css">-->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <style>
-        #map{
-            height:400px;
-            margin-bottom:20px;
-        }
-        .container{
-            max-width:600px;
-            margin:0 auto;
-            padding:20px;
-        }
-        .address-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .food-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .suggestions-list {
-            list-style-type: none;
-            padding: 0;
-        }
-    </style>
 </head>
 <body>
     <% if (userType === 'beneficiar') { %>
         <h1>Bun venit, beneficiar!</h1>
         <div class="container">
-            <h1>Adresa de Primire a Donațiilor</h1>
+            <h2>Adresa de Primire a Donațiilor:</h2>
             <input type="text" id="addressInput" placeholder="Introduceți adresa de primire a donațiilor">
-            <button onclick="showMap()">Afișează Locația</button>
+            <div class = "AL">
+                <button onclick="showMap()">Afișează Locația</button>
+            </div>
             <div id="map"></div>
             <p id="address"></p>
             <h2>Adrese salvate:</h2>
