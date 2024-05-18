@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inregistrare</title>
+    <link rel="stylesheet" href="singup.css">
+    <!--<style>
+        .password-strength {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .weak {
+            color: red;
+        }
+
+        .medium {
+            color: orange;
+        }
+
+        .strong {
+            color: green;
+        }
+    </style>-->
+</head>
+<body>
+    <main class = "singup-container">
+        <form action="./inregistrare" method="post" class = "registration-form">
+            <h1>Inregistrare</h1>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Nume utilizator:</label>
+                <input type="text" id="username" name="username" required>
+            </div> 
+            <div class="form-group">
+                <label for="password">Parola:</label>
+                <input type="password" id="password" name="password" required>
+                <div id="password-strength" class="password-strength"></div>
+            </div>
+            <div class="form-group">
+                <label for="userType">Tip utilizator:</label>
+                <select id="userType" name="userType" required>
+                    <option value="donator">Donator</option>
+                    <option value="beneficiar">Beneficiar</option>
+                </select>
+            </div>
+            <button type="submit">Inregistrare</button>
+        </form>
+    </main>
+    <script>
+        document.getElementById('password').addEventListener('input', function () {
+            var password = this.value;
+            var strength = document.getElementById('password-strength');
+
+            var strongRegex = new RegExp(
+                '^(?=.{8,})(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*\\W).*$',
+                'g'
+            );
+            var mediumRegex = new RegExp(
+                '^(?=.{7,})(?=.*[a-zA-Z])(?=.*[0-9]).*$',
+                'g'
+            );
+            var enoughRegex = new RegExp('(?=.{6,}).*', 'g');
+
+            if (false == enoughRegex.test(password)) {
+                strength.innerHTML = 'Parola este prea scurtă';
+            } else if (strongRegex.test(password)) {
+                strength.innerHTML = '<span class="strong">Puternică!</span>';
+            } else if (mediumRegex.test(password)) {
+                strength.innerHTML = '<span class="medium">Medie!</span>';
+            } else {
+                strength.innerHTML = '<span class="weak">Slabă!</span>';
+            }
+        });
+    </script>
+</body>
+</html>

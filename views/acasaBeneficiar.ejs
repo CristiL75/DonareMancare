@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acasa</title>
+    <link rel = "stylesheet" href = "beneficiarHome.css">
+    <!--<link rel="stylesheet" href="styles.css">-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+</head>
+<body>
+    <% if (userType === 'beneficiar') { %>
+        <h1>Bun venit, beneficiar!</h1>
+        <div class="container">
+            <h2>Adresa de Primire a Donațiilor:</h2>
+            <input type="text" id="addressInput" placeholder="Introduceți adresa de primire a donațiilor">
+            <div class = "AL">
+                <button onclick="showMap()">Afișează Locația</button>
+            </div>
+            <div id="map"></div>
+            <p id="address"></p>
+            <h2>Adrese salvate:</h2>
+            <ul id="addressList" class="address-list"></ul>
+            <h2>Alimente donate:</h2>
+            <input type="text" id="foodInput" placeholder="Introduceți alimentul de care aveți nevoie">
+            <button onclick="addFood()">Adaugă aliment</button>
+            <ul id="foodList" class="food-list"></ul>
+            <h2>Sugestii de la donatori:</h2>
+            <ul id="suggestionsList" class="suggestions-list"></ul>
+        </div>
+    <% } else { %>
+        <p>Acces restricționat. Trebuie să fii beneficiar pentru a accesa această pagină.</p>
+    <% } %>
+    <!--<p>Token: <%= token %></p>
+    <p>User Type: <%= userType %></p> Afișează userType folosind <%= %> -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script>
+        var map = L.map('map').setView([45.7489, 21.2087], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var foodList = [];
+        var suggestionsList = [];
+        var addressList = [];
+
+        if (localStorage.getItem('addressList')) {
+            addressList = JSON.parse(localStorage.getItem('addressList'));
+            displayAddressList();
+        }
+
+        if (localStorage.getItem('foodList')) {
+            foodList = JSON.parse(localStorage.getItem('foodList'));
+            displayFoodList();
+        }
+
+
+        function showMap() {
+            var address = document.getElementById('addressInput').value;
+        
+            var geocoder = L.Control.geocoder({
+                defaultMarkGeocode: false
+            })
+            .on('markgeocode', function(e) {
+                var latlng = e.geocode.center;
+                map.flyTo(latlng, 15);
+                L.marker(latlng).addTo(map)
+                    .bindPopup(address)
+                    .openPopup();
+        
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    address = data.display_name;
+                    var coordinates = { address: address, latlng: latlng };
+                    addressList.push(coordinates);
+                    displayAddressList();
+                    sendAddressList(addressList); // Trimite adresa și coordonatele către backend
+                })
+                .catch(error => {
+                    console.error('Eroare la obținerea adresei:', error);
+                });
+            });
+        
+            map.addControl(geocoder);
+            geocoder.addTo(map);
+        
+            geocoder.geocode(address);
+        }
+        
+        
+        function sendAddressList() {
+            fetch('/salvareAdrese', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ coordinates: addressList }) // Trimite adresa și coordonatele către backend
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Adresele au fost trimise cu succes către backend!', data);
+            })
+            .catch(error => {
+                console.error('Eroare la trimiterea adreselor către backend:', error);
+            });
+        }
+        
+
+        function displayAddressList() {
+            var list = document.getElementById('addressList');
+            list.innerHTML = '';
+            addressList.forEach(function(address) {
+                var li = document.createElement('li');
+                li.textContent = address.address;
+                list.appendChild(li);
+            });
+        }
+
+        function addFood() {
+            var food = document.getElementById('foodInput').value;
+            if (food.trim() !== '' && !foodList.includes(food)) {
+                foodList.push(food);
+                displayFoodList();
+                sendFoodList();
+                document.getElementById('foodInput').value = '';
+            } else if (foodList.includes(food)) {
+                alert('Alimentul este deja în listă!');
+            }
+        }
+        
+
+        function removeFood(index) {
+            const removedFood = foodList[index];
+            foodList.splice(index, 1);
+            displayFoodList();
+            sendFoodList();
+            removeNeededFood(removedFood); // Șterge alimentul din lista de alimente necesare
+        }
+        
+        
+        function removeNeededFood(removedFood) {
+            fetch('/removeNeededFood', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ food: removedFood }) // Trimitem alimentul care trebuie șters din lista de alimente necesare
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Alimentul nu a putut fi șters din lista de alimente necesare');
+                }
+            })
+            .then(data => {
+                console.log('Alimentul a fost șters din lista de alimente necesare cu succes!');
+            })
+            .catch(error => {
+                console.error('Eroare la ștergerea alimentului din lista de alimente necesare:', error);
+            });
+        }
+        
+
+        function sendFoodList() {
+            fetch('/salvareAlimente', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ foods: foodList })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Alimentele au fost trimise cu succes către backend!', data);
+                localStorage.setItem('foodList', JSON.stringify(foodList)); // Salvează lista de alimente în localStorage
+            })
+            .catch(error => {
+                console.error('Eroare la trimiterea alimentelor către backend:', error);
+            });
+        }
+
+        function displayFoodList() {
+            var list = document.getElementById('foodList');
+            list.innerHTML = '';
+            foodList.forEach(function(food, index) {
+                var li = document.createElement('li');
+                li.textContent = food;
+                var button = document.createElement('button');
+                button.textContent = 'Șterge';
+                button.onclick = function() {
+                    removeFood(index);
+                };
+                li.appendChild(button);
+                list.appendChild(li);
+            });
+        }
+        
+        function displaySuggestions(suggestions) {
+            var list = document.getElementById('suggestionsList');
+            list.innerHTML = '';
+            suggestions.forEach(function(suggestion) {
+                var li = document.createElement('li');
+                li.textContent = suggestion.suggestion; // Sugestiile sunt obiecte, trebuie să accesezi proprietatea suggestion
+                var acceptButton = document.createElement('button');
+                acceptButton.textContent = 'Acceptă';
+                acceptButton.onclick = function() {
+                    acceptSuggestion(suggestion._id, suggestion.suggestion);
+                };
+                var rejectButton = document.createElement('button');
+                rejectButton.textContent = 'Respinge';
+                rejectButton.onclick = function() {
+                    rejectSuggestion(suggestion._id);
+                };
+                li.appendChild(acceptButton);
+                li.appendChild(rejectButton);
+                list.appendChild(li); // Adaugă doar o singură dată sugestia în listă
+            });
+        }
+        
+        
+        async function getSuggestions() {
+            try {
+                const response = await fetch('/getSuggestions');
+                console.log(response);
+                const suggestions = await response.json();
+                console.log(suggestions);
+                displaySuggestions(suggestions);
+            } catch(error) {
+                console.error('Eroare la obținerea sugestiilor', error);
+            }
+        }
+
+        function acceptSuggestion(suggestionId, suggestion) {
+            fetch('/acceptSuggestion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ suggestionId: suggestionId, suggestion: suggestion }) // Trimitem id-ul sugestiei și alimentul
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json(); // returnăm răspunsul pentru a putea lucra cu el în continuare
+                } else {
+                    throw new Error('Sugestia nu a putut fi acceptată');
+                }
+            })
+            .then(data => {
+                console.log('Sugestia a fost acceptată și alimentul a fost adăugat la lista de alimente donate!');
+                // Adaugăm alimentul sugerat la lista de alimente donate
+                foodList.push(suggestion);
+                // Salvăm lista de alimente pe server
+                sendFoodList();
+                // Reîmprospătăm lista de alimente afișată
+                displayFoodList();
+                // Reîmprospătăm sugestiile pentru a reflecta actualizarea
+                getSuggestions();
+            })
+            .catch(error => {
+                console.error('Eroare la acceptarea sugestiei:', error);
+            });
+        }
+        
+        
+        async function rejectSuggestion(suggestionId) {
+            try {
+                const response = await fetch('/rejectSuggestion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ suggestionId })
+                });
+                const result = await response.json();
+                console.log(result);
+                getSuggestions(); // Reîncarcă sugestiile după ce una este respinsă
+            } catch(error) {
+                console.error('Eroare la respingerea sugestiei', error);
+            }
+        }
+        
+        getSuggestions();
+    </script>
+</body>
+</html>

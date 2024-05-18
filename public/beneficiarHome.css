@@ -1,0 +1,87 @@
+body {
+    background-image: url('BackgroudBeneficiar.jpg');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: 100% 100%;
+}
+
+h1 {
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    color: #fff;
+}
+
+.AL{
+    margin-bottom: 10px;
+}
+
+#map {
+    height: 300px;
+    width: 100%;
+    max-width: 600px; /* Asigură că harta nu depășește lățimea containerului */
+    margin: 0 auto 20px; /* Centrează harta și adaugă spațiu jos */
+    border: 1px solid #ddd; /* Bordură subțire pentru a defini harta */
+    border-radius: 10px; /* Colțuri rotunjite pentru hartă */
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(185, 246, 0, 0.852);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: #c11d1d;
+}
+
+h2 {
+    color: #c11d1d;
+    text-align: left;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: inset 0 1px 3px rgba(202, 179, 0, 0.852);
+    align-items: center;
+    justify-content: center;
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #a72828;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #882121;
+}
+
+ul.food-list li {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.address-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.food-list {
+    list-style-type: none;
+    padding: 0;
+}
