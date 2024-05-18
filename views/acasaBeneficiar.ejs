@@ -121,13 +121,16 @@
 
         function addFood() {
             var food = document.getElementById('foodInput').value;
-            if (food.trim() !== '') {
+            if (food.trim() !== '' && !foodList.includes(food)) {
                 foodList.push(food);
                 displayFoodList();
                 sendFoodList();
                 document.getElementById('foodInput').value = '';
+            } else if (foodList.includes(food)) {
+                alert('Alimentul este deja în listă!');
             }
         }
+        
 
         function removeFood(index) {
             const removedFood = foodList[index];
