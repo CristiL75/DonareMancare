@@ -98,26 +98,38 @@
         getNeededFoods();
 
       
-        function sendSuggestion(){
-            var suggestion = document.getElementById('suggestion').value;
-            if(suggestion.trim() != ''){
-                fetch('/sendSuggestion',{
-                    method:'POST',
-                    headers:{
-                        'Content-Type':'application/json'
-                    },
-                    body:JSON.stringify({suggestion:suggestion})
-                })
-                .then(response=>response.json())
-                .then(data=>{
-                    console.log('Sugestia a fost trimisa cu succes!', data);
-                    document.getElementById('suggestion').value = '';
-                })
-                .catch(error=>{
-                    console.error('Eroare la trimiterea sugestiei:', error);
-                })
+        async function sendSuggestion(){
+            var suggestion = document.getElementById('suggestion').value.trim().toLowerCase();
+            if(suggestion !== ''){
+   
+                const response = await fetch('/getNeededFoods');
+                const neededFoods = await response.json();
+        
+         
+                const suggestionExists = neededFoods.some(food => food.food.toLowerCase() === suggestion);
+        
+                if(suggestionExists){
+                    alert('Acest aliment este deja pe lista de alimente necesare!');
+                } else {
+                    fetch('/sendSuggestion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ suggestion: suggestion })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Sugestia a fost trimisă cu succes!', data);
+                        document.getElementById('suggestion').value = '';
+                    })
+                    .catch(error => {
+                        console.error('Eroare la trimiterea sugestiei:', error);
+                    });
+                }
             }
         }
+        
 
 
         function displayAiSuggestions(neededFoods){
