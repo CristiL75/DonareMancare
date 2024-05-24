@@ -45,6 +45,7 @@
         var foodList = [];
         var suggestionsList = [];
         var addressList = [];
+        var markers = [];
 
         if (localStorage.getItem('addressList')) {
             addressList = JSON.parse(localStorage.getItem('addressList'));
@@ -56,7 +57,6 @@
             displayFoodList();
         }
 
-
         function showMap() {
             var address = document.getElementById('addressInput').value;
         
@@ -66,9 +66,10 @@
             .on('markgeocode', function(e) {
                 var latlng = e.geocode.center;
                 map.flyTo(latlng, 15);
-                L.marker(latlng).addTo(map)
+                var marker = L.marker(latlng).addTo(map)
                     .bindPopup(address)
                     .openPopup();
+                markers.push(marker); // Store the marker
         
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
                 .then(response => response.json())
@@ -89,8 +90,7 @@
         
             geocoder.geocode(address);
         }
-        
-        
+
         function sendAddressList() {
             fetch('/salvareAdrese', {
                 method: 'POST',
@@ -107,15 +107,113 @@
                 console.error('Eroare la trimiterea adreselor către backend:', error);
             });
         }
-        
 
         function displayAddressList() {
             var list = document.getElementById('addressList');
             list.innerHTML = '';
-            addressList.forEach(function(address) {
+            addressList.forEach(function(address, index) {
                 var li = document.createElement('li');
                 li.textContent = address.address;
+                var button = document.createElement('button');
+                button.textContent = 'Șterge Adresa';
+                button.onclick = function() {
+                    removeAddress(address.address); // trimitem doar adresa, nu întregul obiect
+                };
+                li.appendChild(button);
                 list.appendChild(li);
+            });
+        }
+
+        
+        function removeAddress(address) {
+            // Identificăm adresa în lista de adrese și obținem indexul ei
+            const index = addressList.findIndex(item => item.address === address);
+            if (index !== -1) {
+                const removedAddress = addressList[index];
+                addressList.splice(index, 1); // Ștergem adresa din lista de adrese
+                displayAddressList(); // Reafisăm lista de adrese actualizată
+        
+                // Trimitem cererea către server pentru a șterge adresa
+                fetch('/removeAddress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address: address })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Adresa nu a putut fi ștearsă');
+                    }
+                })
+                .then(data => {
+                    console.log('Adresa a fost ștearsă cu succes!', data);
+                })
+                .catch(error => {
+                    console.error('Eroare la ștergerea adresei:', error);
+                });
+        
+                // Eliminăm marcajul corespunzător de pe hartă
+                map.removeLayer(markers[index]);
+                markers.splice(index, 1);
+        
+                // Afiseaza mesajul in terminal
+                console.log(`Adresa a fost ștearsă: ${removedAddress.address}`);
+            }
+        }
+        
+        
+        
+        
+        
+        function updateDonorPage() {
+            fetch('/updateDonorPage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ addressList: addressList })
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Pagina donatorului a fost actualizată cu succes!');
+                } else {
+                    throw new Error('Eroare la actualizarea paginii donatorului');
+                }
+            })
+            .catch(error => {
+                console.error('Eroare la actualizarea paginii donatorului:', error);
+            });
+        }
+        
+
+        function removeMarker(index) {
+            map.removeLayer(markers[index]);
+            markers.splice(index, 1);
+        }
+
+        function deleteAddressFromServer(removedAddress) {
+            fetch('/deleteAddress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ address: removedAddress })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Adresa nu a putut fi ștearsă');
+                }
+            })
+            .then(data => {
+                console.log('Adresa a fost ștearsă cu succes!', data);
+            })
+            .catch(error => {
+                console.error('Eroare la ștergerea adresei:', error);
             });
         }
 
@@ -130,7 +228,6 @@
                 alert('Alimentul este deja în listă!');
             }
         }
-        
 
         function removeFood(index) {
             const removedFood = foodList[index];
@@ -139,8 +236,7 @@
             sendFoodList();
             removeNeededFood(removedFood); // Șterge alimentul din lista de alimente necesare
         }
-        
-        
+
         function removeNeededFood(removedFood) {
             fetch('/removeNeededFood', {
                 method: 'POST',
@@ -163,7 +259,6 @@
                 console.error('Eroare la ștergerea alimentului din lista de alimente necesare:', error);
             });
         }
-        
 
         function sendFoodList() {
             fetch('/salvareAlimente', {
