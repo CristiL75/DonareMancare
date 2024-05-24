@@ -129,7 +129,87 @@
                 }
             }
         }
+        async function updateDonorPage(updatedAddresses) {
+            try {
+                const response = await fetch('/updateDonorPage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ addresses: updatedAddresses })
+                });
+                if (response.ok) {
+                    console.log('Pagina donatorului a fost actualizată cu succes!');
+                } else {
+                    throw new Error('Eroare la actualizarea paginii donatorului');
+                }
+            } catch (error) {
+                console.error('Eroare la actualizarea paginii donatorului:', error);
+            }
+        }
         
+        // După ștergerea adresei de pe pagina beneficiarului, apelăm funcția updateDonorPage cu noile coordonate actualizate
+        // După ștergerea adresei de pe pagina beneficiarului, apelăm funcția updateDonorPage cu noile coordonate actualizate și actualizăm harta
+     
+        
+        async function onDeleteAddress(addressId) {
+            try {
+                const updatedAddresses = await getUpdatedAddressesAfterDeletion(addressId); // Obține adresele actualizate după ștergere
+                const response = await fetch('/updateDonorPage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ addresses: updatedAddresses }) // Trimite adresele actualizate către backend
+                });
+                if (response.ok) {
+                    console.log('Pagina donatorului a fost actualizată cu succes!');
+                    updateMap(updatedAddresses); // Actualizează harta cu noile adrese
+                } else {
+                    throw new Error('Eroare la actualizarea paginii donatorului');
+                }
+            } catch (error) {
+                console.error('Eroare la actualizarea paginii donatorului:', error);
+            }
+        }
+        
+        // Funcția pentru a actualiza harta cu noile adrese actualizate
+        function updateMap(updatedAddresses) {
+            // Ștergem toate marcatorii de pe hartă
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            // Adăugăm din nou marcatorii cu noile coordonate actualizate
+            updatedAddresses.forEach(function (address) {
+                if (address.lat !== undefined && address.lng !== undefined) {
+                    var popupContent = `<b>Adresă:</b> ${address.address}<br><b>Latitudine:</b> ${address.lat}<br><b>Longitudine:</b> ${address.lng}`;
+                    L.marker([address.lat, address.lng])
+                        .addTo(map)
+                        .bindPopup(popupContent)
+                        .openPopup();
+                }
+            });
+            // Setăm centrul hărții pe primul marker, dacă există
+            if (updatedAddresses.length > 0 && updatedAddresses[0].lat !== undefined && updatedAddresses[0].lng !== undefined) {
+                map.setView([updatedAddresses[0].lat, updatedAddresses[0].lng], 13);
+            }
+        }
+        
+        
+
+    function getUpdatedAddressesAfterDeletion(addressId) {
+        for (let i = 0; i < addresses.length; i++) {
+            if (addresses[i].id === addressId) {
+                addresses.splice(i, 1); 
+                break; 
+            }
+        }
+        return addresses; // Returnăm lista actualizată de adrese
+    }
+
+            
 
 
         function displayAiSuggestions(neededFoods){
