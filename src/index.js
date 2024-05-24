@@ -110,6 +110,33 @@ app.post("/autentificare", async (req, res) => {
         return res.send("Error logging in");
     }
 });
+app.get('/removeAddress', (req, res) => {
+    res.send('This endpoint only accepts POST requests for removing addresses.');
+});
+app.post('/removeAddress', async (req, res) => {
+    try {
+        const removedAddress = req.body.address;
+        console.log('Adresa primită pentru ștergere:', removedAddress);
+        
+        // Verificăm dacă adresa este definită
+        if (!removedAddress) {
+            return res.status(400).json({ message: 'Adresa lipsește în cerere' });
+        }
+
+        // Căutăm adresa în baza de date și o ștergem
+        const result = await AdreseCollection.deleteOne({ address: removedAddress });
+        if (result.deletedCount > 0) {
+            return res.json({ message: 'Adresa a fost ștearsă cu succes din baza de date' });
+        } else {
+            return res.status(404).json({ message: 'Adresa nu a fost găsită în baza de date' });
+        }
+    } catch (error) {
+        console.error('Eroare la ștergerea adresei din baza de date:', error);
+        return res.status(500).json({ message: 'Eroare la ștergerea adresei din baza de date' });
+    }
+});
+
+
 
 app.get("/acasaBeneficiar", (req, res) => {
     const userType = req.session.userType;
@@ -214,6 +241,20 @@ app.post('/acceptSuggestion', async (req, res) => {
     } catch (error) {
         console.error('Eroare la acceptarea sugestiei:', error);
         res.status(500).json({ message: 'Eroare la acceptarea sugestiei' });
+    }
+});
+
+app.post('/updateDonorPage', async (req, res) => {
+    try {
+        const updatedAddresses = req.body.addresses;
+        // Actualizează lista de adrese în baza de date
+        // De exemplu, pentru a actualiza toate documentele existente cu lista de adrese actualizată:
+        const result = await AdreseCollection.updateMany({}, { $set: { addresses: updatedAddresses } });
+        console.log('Numărul de documente actualizate:', result.nModified);
+        res.json({ message: 'Pagina donatorului a fost actualizată cu succes!' });
+    } catch (error) {
+        console.error('Eroare la actualizarea paginii donatorului:', error);
+        res.status(500).json({ message: 'Eroare la actualizarea paginii donatorului' });
     }
 });
 
