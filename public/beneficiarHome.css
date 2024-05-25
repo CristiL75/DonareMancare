@@ -11,7 +11,7 @@ h1 {
     color: #fff;
 }
 
-.AL{
+.AL {
     margin-bottom: 10px;
 }
 
@@ -41,13 +41,13 @@ h2 {
 
 input[type="text"] {
     width: 100%;
+    max-width: 575px; /* Ajustează această valoare după preferințe */
     padding: 10px;
-    margin-bottom: 10px;
+    margin: 0 auto 10px; /* Centrează input-ul */
     border: 1px solid #ccc;
     border-radius: 5px;
     box-shadow: inset 0 1px 3px rgba(202, 179, 0, 0.852);
-    align-items: center;
-    justify-content: center;
+    display: block; /* Asigură că margin auto funcționează corect */
 }
 
 button {
@@ -84,4 +84,61 @@ ul.food-list li {
 .food-list {
     list-style-type: none;
     padding: 0;
+}
+
+button.accept-btn, button.reject-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    margin-left: 5px;
+    margin-right: 5px;
+    border-radius: 3px;
+    display: inline-block;
+    width: auto;
+}
+
+button.accept-btn {
+    background-color: #28a745;
+    color: #fff;
+}
+
+button.accept-btn:hover {
+    background-color: #218838;
+}
+
+button.reject-btn {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+button.reject-btn:hover {
+    background-color: #c82333;
+}
+
+ul.suggestions-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+ul.suggestions-list li {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+ul.suggestions-list li p {
+    margin: 0;
+    font-size: 17px;
+    flex-grow: 1;
+    padding-right: 10px;
+}
+
+ul.suggestions-list li button {
+    margin-left: 10px;
+    flex-shrink: 0;
 }

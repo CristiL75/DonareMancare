@@ -272,26 +272,33 @@ function removeAddress(address) {
         }
 
         function displaySuggestions(suggestions) {
-            var list = document.getElementById('suggestionsList');
-            list.innerHTML = '';
-            suggestions.forEach(function(suggestion) {
-                var li = document.createElement('li');
-                li.textContent = suggestion.suggestion;
-                var acceptButton = document.createElement('button');
-                acceptButton.textContent = 'Acceptă';
-                acceptButton.onclick = function() {
-                    acceptSuggestion(suggestion._id, suggestion.suggestion);
-                };
-                var rejectButton = document.createElement('button');
-                rejectButton.textContent = 'Respinge';
-                rejectButton.onclick = function() {
-                    rejectSuggestion(suggestion._id);
-                };
-                li.appendChild(acceptButton);
-                li.appendChild(rejectButton);
-                list.appendChild(li);
-            });
-        }
+        var list = document.getElementById('suggestionsList');
+        list.innerHTML = '';
+        suggestions.forEach(function(suggestion) {
+            var li = document.createElement('li');
+            var suggestionText = document.createElement('p');
+            suggestionText.textContent = suggestion.suggestion;
+            li.appendChild(suggestionText);
+
+            var acceptButton = document.createElement('button');
+            acceptButton.textContent = 'Acceptă';
+            acceptButton.classList.add('accept-btn');
+            acceptButton.onclick = function() {
+                acceptSuggestion(suggestion._id, suggestion.suggestion);
+            };
+
+            var rejectButton = document.createElement('button');
+            rejectButton.textContent = 'Respinge';
+            rejectButton.classList.add('reject-btn');
+            rejectButton.onclick = function() {
+                rejectSuggestion(suggestion._id);
+            };
+
+            li.appendChild(acceptButton);
+            li.appendChild(rejectButton);
+            list.appendChild(li);
+        });
+    }
 
         async function getSuggestions() {
             try {
