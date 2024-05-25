@@ -51,8 +51,6 @@ app.post("/inregistrare", async (req, res) => {
         password: req.body.password
     };
 
-    console.log("Am primit datele:", data);
-
     try {
         if (!data.email || !data.name || !data.password) {
             return res.status(400).send("Missing required fields");
@@ -67,9 +65,7 @@ app.post("/inregistrare", async (req, res) => {
             data.password = hashedPassword;
 
             const newUser = await AutentificareCollection.create(data);
-            console.log("User data inserted:", newUser);
             const token = generateToken(newUser);
-
             return res.redirect("/");
         }
     } catch (error) {
@@ -77,6 +73,7 @@ app.post("/inregistrare", async (req, res) => {
         return res.status(500).send("Error registering user");
     }
 });
+
 
 app.post("/autentificare", async (req, res) => {
     const { email, password } = req.body;
@@ -91,14 +88,18 @@ app.post("/autentificare", async (req, res) => {
         const isPasswordMatch = await bcrypt.compare(password, userData.password);
 
         if (isPasswordMatch) {
+            req.session.userId = userData._id; // Stochează userId în sesiune
             req.session.username = userData.name;
             req.session.userType = userData.userType;
             const token = generateToken(userData);
 
+            console.log("userData.name:", userData.name); // Verificăm valoarea numărului de utilizator
+            console.log("req.session.username:", req.session.username); // Verificăm valoarea numărului de sesiune
+
             if (userData.userType === 'beneficiar') {
-                res.redirect("/acasaBeneficiar?token=" + token);
+                res.redirect("/acasaBeneficiar?token=" + token + "&username=" + userData.name);
             } else if (userData.userType === 'donator') {
-                res.redirect("/acasaDonator?token=" + token);
+                res.redirect("/acasaDonator?token=" + token + "&username=" + req.session.username);
             } else {
                 res.send("Try again!");
             }
@@ -111,10 +112,42 @@ app.post("/autentificare", async (req, res) => {
     }
 });
 
+
+app.get('/removeAddress', (req, res) => {
+    res.status(405).send('Method Not Allowed'); 
+});
+app.post('/removeAddress', async (req, res) => {
+    try {
+        const removedAddress = req.body.address;
+        console.log('Adresa primită pentru ștergere:', removedAddress);
+        
+      
+        if (!removedAddress) {
+            return res.status(400).json({ message: 'Adresa lipsește în cerere' });
+        }
+
+        // Căutăm adresa în baza de date și o ștergem
+        const result = await AdreseCollection.deleteOne({ address: removedAddress });
+        if (result.deletedCount > 0) {
+            return res.json({ message: 'Adresa a fost ștearsă cu succes din baza de date' });
+        } else {
+            return res.status(404).json({ message: 'Adresa nu a fost găsită în baza de date' });
+        }
+    } catch (error) {
+        console.error('Eroare la ștergerea adresei din baza de date:', error);
+        return res.status(500).json({ message: 'Eroare la ștergerea adresei din baza de date' });
+    }
+});
+
+
+
 app.get("/acasaBeneficiar", (req, res) => {
     const userType = req.session.userType;
-    res.render("acasaBeneficiar", { token: req.query.token, userType: userType });
+    const loggedInUsername = req.query.username; // preia valoarea de la query string
+    req.session.loggedInUsername = loggedInUsername; // salvează-o în sesiune
+    res.render("acasaBeneficiar", { token: req.query.token, userType: userType, loggedInUsername: loggedInUsername });
 });
+
 
 app.get("/acasaDonator", (req, res) => {
     const userType = req.session.userType;
@@ -130,31 +163,45 @@ app.get("/adresaDonatii", (req, res) => {
 
 app.post("/salvareAdrese", async (req, res) => {
     const coordinates = req.body.coordinates;
+    const loggedInUsername = req.session.username; // Primește numele utilizatorului din sesiune
 
     try {
-        const adreseSalvate = await AdreseCollection.insertMany(coordinates);
-        console.log("Adresele au fost salvate cu succes:", adreseSalvate);
-        res.json({ message: "Adresele au fost salvate cu succes!" });
+        if (!loggedInUsername) {
+            return res.status(400).json({ message: 'Utilizatorul nu este autentificat' });
+        }
+
+        const adreseCuUsername = coordinates.map(coord => ({ ...coord, username: loggedInUsername }));
+        const adreseSalvate = await AdreseCollection.insertMany(adreseCuUsername);
+        res.json({ message: "Adresele au fost salvate cu succes!", loggedInUsername: loggedInUsername });
     } catch (error) {
         console.error("Eroare la salvarea adreselor:", error);
         res.status(500).json({ message: "Eroare la salvarea adreselor!" });
     }
 });
 
+
+
+
 app.get('/getCollectionPoints', async (req, res) => {
     try {
         const collectionPoints = await AdreseCollection.find({});
+        console.log('Puncte de colectare din baza de date:', collectionPoints);
+        
         const formattedCollectionPoints = collectionPoints.map(point => ({
             address: point.address,
             lat: point.latlng.lat,
             lng: point.latlng.lng
         }));
+        
+        console.log('Puncte de colectare formatate:', formattedCollectionPoints);
         res.json(formattedCollectionPoints);
     } catch (error) {
         console.error('Eroare la obtinerea punctelor de colectare:', error);
         res.status(500).json({ message: 'Eroare la obtinerea punctelor de colectare' });
     }
 });
+
+
 
 app.get('/getNeededFoods', async (req, res) => {
     try {
@@ -214,6 +261,20 @@ app.post('/acceptSuggestion', async (req, res) => {
     } catch (error) {
         console.error('Eroare la acceptarea sugestiei:', error);
         res.status(500).json({ message: 'Eroare la acceptarea sugestiei' });
+    }
+});
+
+app.post('/updateDonorPage', async (req, res) => {
+    try {
+        const updatedAddresses = req.body.addresses;
+        // Actualizează lista de adrese în baza de date
+        // De exemplu, pentru a actualiza toate documentele existente cu lista de adrese actualizată:
+        const result = await AdreseCollection.updateMany({}, { $set: { addresses: updatedAddresses } });
+        console.log('Numărul de documente actualizate:', result.nModified);
+        res.json({ message: 'Pagina donatorului a fost actualizată cu succes!' });
+    } catch (error) {
+        console.error('Eroare la actualizarea paginii donatorului:', error);
+        res.status(500).json({ message: 'Eroare la actualizarea paginii donatorului' });
     }
 });
 
