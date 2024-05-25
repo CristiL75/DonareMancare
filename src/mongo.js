@@ -38,6 +38,7 @@ const adreseSchema = new mongoose.Schema({
       lat: Number,
       lng: Number
     },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'AutentificareCollection' },
     required: true
   }
 });
