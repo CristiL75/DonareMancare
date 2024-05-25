@@ -4,36 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acasa</title>
-    <link rel = "stylesheet" href = "beneficiarHome.css">
-    <!--<link rel="stylesheet" href="styles.css">-->
+    <link rel="stylesheet" href="beneficiarHome.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 </head>
 <body>
-    <% if (userType === 'beneficiar') { %>
-        <h1>Bun venit, beneficiar!</h1>
-        <div class="container">
-            <h2>Adresa de Primire a Donațiilor:</h2>
-            <input type="text" id="addressInput" placeholder="Introduceți adresa de primire a donațiilor">
-            <div class = "AL">
-                <button onclick="showMap()">Afișează Locația</button>
-            </div>
-            <div id="map"></div>
-            <p id="address"></p>
-            <h2>Adrese salvate:</h2>
-            <ul id="addressList" class="address-list"></ul>
-            <h2>Alimente donate:</h2>
-            <input type="text" id="foodInput" placeholder="Introduceți alimentul de care aveți nevoie">
-            <button onclick="addFood()">Adaugă aliment</button>
-            <ul id="foodList" class="food-list"></ul>
-            <h2>Sugestii de la donatori:</h2>
-            <ul id="suggestionsList" class="suggestions-list"></ul>
+    <h1>Bun venit, beneficiar!</h1>
+    <p>Username-ul tău este: <span id="loggedInUsername"></span></p>
+    <div class="container">
+        <h2>Adresa de Primire a Donațiilor:</h2>
+        <input type="text" id="addressInput" placeholder="Introduceți adresa de primire a donațiilor">
+        <div class="AL">
+            <button onclick="showMap()">Afișează Locația</button>
         </div>
-    <% } else { %>
-        <p>Acces restricționat. Trebuie să fii beneficiar pentru a accesa această pagină.</p>
-    <% } %>
-    <!--<p>Token: <%= token %></p>
-    <p>User Type: <%= userType %></p> Afișează userType folosind <%= %> -->
+        <div id="map" style="height: 400px;"></div>
+        <p id="address"></p>
+        <h2>Adrese salvate:</h2>
+        <ul id="addressList" class="address-list"></ul>
+        <h2>Alimente donate:</h2>
+        <input type="text" id="foodInput" placeholder="Introduceți alimentul de care aveți nevoie">
+        <button onclick="addFood()">Adaugă aliment</button>
+        <ul id="foodList" class="food-list"></ul>
+        <h2>Sugestii de la donatori:</h2>
+        <ul id="suggestionsList" class="suggestions-list"></ul>
+    </div>
+
+    <script>
+        let loggedInUsername = ''; // Inițializare globală a variabilei
+    
+        // Obține întregul URL al paginii
+        const url = window.location.href;
+    
+        // Extrage query string-ul din URL
+        const queryString = url.split('?')[1];
+    
+        // Verifică dacă există un query string
+        if (queryString) {
+            // Parsează parametrii query string
+            const urlParams = new URLSearchParams(queryString);
+    
+            // Obține valoarea parametrului "username"
+            loggedInUsername = urlParams.get('username') || ''; // Asignare valorii variabilei
+        } else {
+            console.log('Nu există parametrii query string în URL.');
+        }
+    </script>
+    
+    
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
@@ -41,57 +58,51 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
-        var foodList = [];
+        
+        var foodList = JSON.parse(localStorage.getItem('foodList')) || [];
         var suggestionsList = [];
-        var addressList = [];
+        var addressList = JSON.parse(localStorage.getItem('addressList')) || [];
         var markers = [];
 
-        if (localStorage.getItem('addressList')) {
-            addressList = JSON.parse(localStorage.getItem('addressList'));
-            displayAddressList();
-        }
-
-        if (localStorage.getItem('foodList')) {
-            foodList = JSON.parse(localStorage.getItem('foodList'));
-            displayFoodList();
-        }
+        displayAddressList();
+        displayFoodList();
+        loadMarkers();
 
         function showMap() {
             var address = document.getElementById('addressInput').value;
         
-            var geocoder = L.Control.geocoder({
-                defaultMarkGeocode: false
-            })
-            .on('markgeocode', function(e) {
-                var latlng = e.geocode.center;
-                map.flyTo(latlng, 15);
-                var marker = L.marker(latlng).addTo(map)
-                    .bindPopup(address)
-                    .openPopup();
-                markers.push(marker); // Store the marker
+            var geocoder = L.Control.Geocoder.nominatim();
+            geocoder.geocode(address, function(results) {
+                if (results && results.length > 0) {
+                    var latlng = results[0].center;
+                    map.flyTo(latlng, 15);
+                    var marker = L.marker(latlng).addTo(map)
+                        .bindPopup(address)
+                        .openPopup();
+                    markers.push(marker);
         
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
-                .then(response => response.json())
-                .then(data => {
-                    address = data.display_name;
-                    var coordinates = { address: address, latlng: latlng };
-                    addressList.push(coordinates);
-                    displayAddressList();
-                    sendAddressList(addressList); // Trimite adresa și coordonatele către backend
-                })
-                .catch(error => {
-                    console.error('Eroare la obținerea adresei:', error);
-                });
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        address = data.display_name;
+                        var coordinates = { address: address, latlng: latlng, username: loggedInUsername }; // adaugă username
+                        addressList.push(coordinates);
+                        localStorage.setItem('addressList', JSON.stringify(addressList)); // Salvează în localStorage
+                        displayAddressList();
+                        sendAddressList(addressList); // Trimite adresa și coordonatele către backend
+                    })
+                    .catch(error => {
+                        console.error('Eroare la obținerea adresei:', error);
+                    });
+                } else {
+                    console.error('Adresa nu a putut fi găsită.');
+                    alert('Adresa nu a putut fi găsită. Vă rugăm să încercați din nou.');
+                }
             });
-        
-            map.addControl(geocoder);
-            geocoder.addTo(map);
-        
-            geocoder.geocode(address);
         }
+        
 
-        function sendAddressList() {
+        function sendAddressList(addressList) {
             fetch('/salvareAdrese', {
                 method: 'POST',
                 headers: {
@@ -111,111 +122,76 @@
         function displayAddressList() {
             var list = document.getElementById('addressList');
             list.innerHTML = '';
-            addressList.forEach(function(address, index) {
+        
+            var userAddresses = addressList.filter(address => address.username === loggedInUsername);
+        
+            userAddresses.forEach(function(address, index) {
                 var li = document.createElement('li');
-                li.textContent = address.address;
+                li.textContent = `Adresă: ${address.address}, Utilizator: ${address.username}`;
                 var button = document.createElement('button');
                 button.textContent = 'Șterge Adresa';
                 button.onclick = function() {
-                    removeAddress(address.address); // trimitem doar adresa, nu întregul obiect
+                    removeAddress(address.address);
                 };
                 li.appendChild(button);
                 list.appendChild(li);
             });
         }
-
-        
-        function removeAddress(address) {
-            // Identificăm adresa în lista de adrese și obținem indexul ei
-            const index = addressList.findIndex(item => item.address === address);
-            if (index !== -1) {
-                const removedAddress = addressList[index];
-                addressList.splice(index, 1); // Ștergem adresa din lista de adrese
-                displayAddressList(); // Reafisăm lista de adrese actualizată
-        
-                // Trimitem cererea către server pentru a șterge adresa
-                fetch('/removeAddress', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ address: address })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error('Adresa nu a putut fi ștearsă');
-                    }
-                })
-                .then(data => {
-                    console.log('Adresa a fost ștearsă cu succes!', data);
-                })
-                .catch(error => {
-                    console.error('Eroare la ștergerea adresei:', error);
-                });
-        
-                // Eliminăm marcajul corespunzător de pe hartă
-                map.removeLayer(markers[index]);
-                markers.splice(index, 1);
-        
-                // Afiseaza mesajul in terminal
-                console.log(`Adresa a fost ștearsă: ${removedAddress.address}`);
-            }
-        }
         
         
-        
-        
-        
-        function updateDonorPage() {
-            fetch('/updateDonorPage', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ addressList: addressList })
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log('Pagina donatorului a fost actualizată cu succes!');
-                } else {
-                    throw new Error('Eroare la actualizarea paginii donatorului');
-                }
-            })
-            .catch(error => {
-                console.error('Eroare la actualizarea paginii donatorului:', error);
-            });
-        }
         
 
-        function removeMarker(index) {
+        var addressList = JSON.parse(localStorage.getItem('addressList')) || [];
+
+function loadMarkers() {
+    // Verificăm dacă există adrese salvate în local storage
+    if (addressList.length > 0) {
+        addressList.forEach(function(address) {
+            var marker = L.marker([address.latlng.lat, address.latlng.lng]).addTo(map)
+                .bindPopup(address.address)
+                .openPopup();
+            markers.push(marker);
+        });
+    } else {
+        console.log('Nu există adrese salvate în local storage.');
+    }
+}
+        
+
+      // Funcție pentru actualizarea datelor din localStorage și afișarea listei de adrese la încărcarea paginii
+function initializePage() {
+    displayAddressList();
+    displayFoodList();
+}
+
+// Adaugăm un eveniment pentru a apela funcția de inițializare la încărcarea paginii
+window.addEventListener('load', initializePage);
+
+
+function removeAddress(address) {
+    // Identificăm adresa în lista de adrese și obținem indexul ei
+    const index = addressList.findIndex(item => item.address === address);
+    if (index !== -1) {
+        const removedAddress = addressList[index];
+        addressList.splice(index, 1); 
+        displayAddressList(); 
+
+        // Actualizăm localStorage cu lista de adrese actualizată
+        localStorage.setItem('addressList', JSON.stringify(addressList));
+
+        // Verificăm dacă există un marcaj asociat acestei adrese
+        if (markers[index]) {
+            // Eliminăm marcajul corespunzător de pe hartă
             map.removeLayer(markers[index]);
             markers.splice(index, 1);
         }
 
-        function deleteAddressFromServer(removedAddress) {
-            fetch('/deleteAddress', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ address: removedAddress })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error('Adresa nu a putut fi ștearsă');
-                }
-            })
-            .then(data => {
-                console.log('Adresa a fost ștearsă cu succes!', data);
-            })
-            .catch(error => {
-                console.error('Eroare la ștergerea adresei:', error);
-            });
-        }
+        // Afiseaza mesajul in terminal
+        console.log(`Adresa a fost ștearsă: ${removedAddress.address}`);
+    }
+}
+
+        
 
         function addFood() {
             var food = document.getElementById('foodInput').value;
@@ -232,6 +208,7 @@
         function removeFood(index) {
             const removedFood = foodList[index];
             foodList.splice(index, 1);
+            localStorage.setItem('foodList', JSON.stringify(foodList)); // Salvează lista actualizată în localStorage
             displayFoodList();
             sendFoodList();
             removeNeededFood(removedFood); // Șterge alimentul din lista de alimente necesare
@@ -243,7 +220,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ food: removedFood }) // Trimitem alimentul care trebuie șters din lista de alimente necesare
+                body: JSON.stringify({ food: removedFood })
             })
             .then(response => {
                 if (response.ok) {
@@ -271,7 +248,7 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Alimentele au fost trimise cu succes către backend!', data);
-                localStorage.setItem('foodList', JSON.stringify(foodList)); // Salvează lista de alimente în localStorage
+                localStorage.setItem('foodList', JSON.stringify(foodList)); 
             })
             .catch(error => {
                 console.error('Eroare la trimiterea alimentelor către backend:', error);
@@ -293,13 +270,13 @@
                 list.appendChild(li);
             });
         }
-        
+
         function displaySuggestions(suggestions) {
             var list = document.getElementById('suggestionsList');
             list.innerHTML = '';
             suggestions.forEach(function(suggestion) {
                 var li = document.createElement('li');
-                li.textContent = suggestion.suggestion; // Sugestiile sunt obiecte, trebuie să accesezi proprietatea suggestion
+                li.textContent = suggestion.suggestion;
                 var acceptButton = document.createElement('button');
                 acceptButton.textContent = 'Acceptă';
                 acceptButton.onclick = function() {
@@ -312,17 +289,14 @@
                 };
                 li.appendChild(acceptButton);
                 li.appendChild(rejectButton);
-                list.appendChild(li); // Adaugă doar o singură dată sugestia în listă
+                list.appendChild(li);
             });
         }
-        
-        
+
         async function getSuggestions() {
             try {
                 const response = await fetch('/getSuggestions');
-                console.log(response);
                 const suggestions = await response.json();
-                console.log(suggestions);
                 displaySuggestions(suggestions);
             } catch(error) {
                 console.error('Eroare la obținerea sugestiilor', error);
@@ -335,32 +309,27 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ suggestionId: suggestionId, suggestion: suggestion }) // Trimitem id-ul sugestiei și alimentul
+                body: JSON.stringify({ suggestionId: suggestionId, suggestion: suggestion })
             })
             .then(response => {
                 if (response.ok) {
-                    return response.json(); // returnăm răspunsul pentru a putea lucra cu el în continuare
+                    return response.json();
                 } else {
                     throw new Error('Sugestia nu a putut fi acceptată');
                 }
             })
             .then(data => {
                 console.log('Sugestia a fost acceptată și alimentul a fost adăugat la lista de alimente donate!');
-                // Adaugăm alimentul sugerat la lista de alimente donate
                 foodList.push(suggestion);
-                // Salvăm lista de alimente pe server
                 sendFoodList();
-                // Reîmprospătăm lista de alimente afișată
                 displayFoodList();
-                // Reîmprospătăm sugestiile pentru a reflecta actualizarea
                 getSuggestions();
             })
             .catch(error => {
                 console.error('Eroare la acceptarea sugestiei:', error);
             });
         }
-        
-        
+
         async function rejectSuggestion(suggestionId) {
             try {
                 const response = await fetch('/rejectSuggestion', {
@@ -372,12 +341,12 @@
                 });
                 const result = await response.json();
                 console.log(result);
-                getSuggestions(); // Reîncarcă sugestiile după ce una este respinsă
+                getSuggestions();
             } catch(error) {
                 console.error('Eroare la respingerea sugestiei', error);
             }
         }
-        
+
         getSuggestions();
     </script>
 </body>
