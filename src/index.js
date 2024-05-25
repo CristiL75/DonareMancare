@@ -183,15 +183,17 @@ app.post("/salvareAdrese", async (req, res) => {
 
 
 app.get('/getCollectionPoints', async (req, res) => {
-    const userId = req.session.userId;
-
     try {
-        const collectionPoints = await AdreseCollection.find({ userId });
+        const collectionPoints = await AdreseCollection.find({});
+        console.log('Puncte de colectare din baza de date:', collectionPoints);
+        
         const formattedCollectionPoints = collectionPoints.map(point => ({
             address: point.address,
             lat: point.latlng.lat,
             lng: point.latlng.lng
         }));
+        
+        console.log('Puncte de colectare formatate:', formattedCollectionPoints);
         res.json(formattedCollectionPoints);
     } catch (error) {
         console.error('Eroare la obtinerea punctelor de colectare:', error);
