@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acasa</title>
-    <link rel = "stylesheet" href = "donatorHome.css">
+    <link rel="stylesheet" href="donatorHome.css">
     <!--<link rel="stylesheet" href="styles.css">-->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
@@ -14,7 +14,7 @@
         <h1>Bun venit, donator!</h1>
         <div class="container">
             <h2>Puncte de colectare:</h2>
-            <div id="map"></div>
+            <div id="map" style="height: 400px;"></div>
             <h2>Alimente necesare:</h2>
             <ul id="neededFoods" class="food-list"></ul>
             <h2>Sugestii pentru firmele intermediare:</h2>
@@ -52,7 +52,7 @@
             }
         }
         
-        async function displayCollectionPoints(collectionPoints) {
+        function displayCollectionPoints(collectionPoints) {
             collectionPoints.forEach(function (point) {
                 if (point.lat !== undefined && point.lng !== undefined) {
                     var popupContent = `<b>Adresă:</b> ${point.address}<br><b>Latitudine:</b> ${point.lat}<br><b>Longitudine:</b> ${point.lng}`;
@@ -67,11 +67,12 @@
             }
         }
         
-
-        
         async function getNeededFoods(){
             try{
                 const response = await fetch('/getNeededFoods');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
                 const neededFoods = await response.json();
                 displayNeededFoods(neededFoods);
                 displayAiSuggestions(neededFoods);
@@ -93,33 +94,36 @@
             });
         }
 
-      
-
         getNeededFoods();
 
-      
-        function sendSuggestion(){
-            var suggestion = document.getElementById('suggestion').value;
-            if(suggestion.trim() != ''){
-                fetch('/sendSuggestion',{
-                    method:'POST',
-                    headers:{
-                        'Content-Type':'application/json'
-                    },
-                    body:JSON.stringify({suggestion:suggestion})
-                })
-                .then(response=>response.json())
-                .then(data=>{
-                    console.log('Sugestia a fost trimisa cu succes!', data);
-                    document.getElementById('suggestion').value = '';
-                })
-                .catch(error=>{
-                    console.error('Eroare la trimiterea sugestiei:', error);
-                })
+        async function sendSuggestion(){
+            var suggestion = document.getElementById('suggestion').value.trim().toLowerCase();
+            if(suggestion !== ''){
+                const response = await fetch('/getNeededFoods');
+                const neededFoods = await response.json();
+                const suggestionExists = neededFoods.some(food => food.food.toLowerCase() === suggestion);
+                if(suggestionExists){
+                    alert('Acest aliment este deja pe lista de alimente necesare!');
+                } else {
+                    fetch('/sendSuggestion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ suggestion: suggestion })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Sugestia a fost trimisă cu succes!', data);
+                        document.getElementById('suggestion').value = '';
+                    })
+                    .catch(error => {
+                        console.error('Eroare la trimiterea sugestiei:', error);
+                    });
+                }
             }
         }
-
-
+        
         function displayAiSuggestions(neededFoods){
             var donatedFoods = [];
             var foodList = document.getElementById('neededFoods').getElementsByTagName('li');
@@ -136,66 +140,63 @@
             });
         }
 
-
-function getAiFoodSuggestions(neededFoods, donatedFoods) {
-    const aiSuggestedFoods = [
-      "paste făinoase",
-      "orez",
-      "ulei",
-      "zahăr",
-      "făină",
-      "lapte",
-      "fasole",
-      "ciocolată",
-      "ceai",
-      "cafea",
-      "cereale",
-      "miere",
-      "sare",
-      "condimente",
-      "suc de fructe",
-      "suc de legume",
-      "biscuiți",
-      "căpșuni",
-      "banane",
-      "mere",
-      "pâine",
-      "cârnați",
-      "brânză",
-      "ouă",
-      "cartofi",
-      "morcovi",
-      "roșii",
-      "varză",
-      "ardei",
-      "pui",
-      "porc",
-      "vita",
-      "pește",
-      "fructe de mare",
-      "fructe uscate",
-      "nuci",
-      "seminte",
-      "patiserii",
-      "lapte praf",
-      "iaurt",
-      "brânză topită",
-      "cașcaval",
-      "unt",
-      "gem",
-      "compot"
-    ];
-  
-    const uniqueSuggestedFoods = aiSuggestedFoods.filter(
-      food =>
-        !donatedFoods.includes(food.toLowerCase()) &&
-        !neededFoods.some(neededFood => neededFood.food.toLowerCase() === food.toLowerCase())
-    );
-  
-    return uniqueSuggestedFoods;
-  }
-  
-
+        function getAiFoodSuggestions(neededFoods, donatedFoods) {
+            const aiSuggestedFoods = [
+                "paste făinoase",
+                "orez",
+                "ulei",
+                "zahăr",
+                "făină",
+                "lapte",
+                "fasole",
+                "ciocolată",
+                "ceai",
+                "cafea",
+                "cereale",
+                "miere",
+                "sare",
+                "condimente",
+                "suc de fructe",
+                "suc de legume",
+                "biscuiți",
+                "căpșuni",
+                "banane",
+                "mere",
+                "pâine",
+                "cârnați",
+                "brânză",
+                "ouă",
+                "cartofi",
+                "morcovi",
+                "roșii",
+                "varză",
+                "ardei",
+                "pui",
+                "porc",
+                "vita",
+                "pește",
+                "fructe de mare",
+                "fructe uscate",
+                "nuci",
+                "seminte",
+                "patiserii",
+                "lapte praf",
+                "iaurt",
+                "brânză topită",
+                "cașcaval",
+                "unt",
+                "gem",
+                "compot"
+            ];
+        
+            const uniqueSuggestedFoods = aiSuggestedFoods.filter(
+                food =>
+                    !donatedFoods.includes(food.toLowerCase()) &&
+                    !neededFoods.some(neededFood => neededFood.food.toLowerCase() === food.toLowerCase())
+            );
+        
+            return uniqueSuggestedFoods;
+        }
     </script>
 </body>
 </html>
