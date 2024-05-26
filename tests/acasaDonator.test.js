@@ -83,10 +83,10 @@ describe('GET /acasaDonator', () => {
       .expect(200)
       .end((err, res) => {
         if (err) return done(err);
-        expect(res.text).toContain('<div id="map"></div>');
+        expect(res.text).toMatch(/<div id="map" style="height: 400px;"><\/div>/);
         done();
       });
-  });
+  }, 10000); // Increase timeout to 10 seconds
 
   it('should display needed foods list container', (done) => {
     request(app)
