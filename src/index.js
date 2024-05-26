@@ -118,16 +118,12 @@ app.get('/removeAddress', (req, res) => {
 });
 app.post('/removeAddress', async (req, res) => {
     try {
-        const removedAddress = req.body.address;
-        console.log('Adresa primită pentru ștergere:', removedAddress);
-        
-      
-        if (!removedAddress) {
+        const { address } = req.body;
+        if (!address) {
             return res.status(400).json({ message: 'Adresa lipsește în cerere' });
         }
 
-        // Căutăm adresa în baza de date și o ștergem
-        const result = await AdreseCollection.deleteOne({ address: removedAddress });
+        const result = await AdreseCollection.deleteOne({ address: address });
         if (result.deletedCount > 0) {
             return res.json({ message: 'Adresa a fost ștearsă cu succes din baza de date' });
         } else {
@@ -138,6 +134,24 @@ app.post('/removeAddress', async (req, res) => {
         return res.status(500).json({ message: 'Eroare la ștergerea adresei din baza de date' });
     }
 });
+
+
+// Funcție pentru actualizarea paginii donatorului cu lista de adrese actualizată
+app.post('/updateDonorPage', async (req, res) => {
+    try {
+        const updatedAddresses = req.body.addresses;
+        // Actualizează lista de adrese în baza de date
+        // De exemplu, pentru a actualiza toate documentele existente cu lista de adrese actualizată:
+        const result = await AdreseCollection.updateMany({}, { $set: { addresses: updatedAddresses } });
+        console.log('Numărul de documente actualizate:', result.nModified);
+        res.json({ message: 'Pagina donatorului a fost actualizată cu succes!' });
+    } catch (error) {
+        console.error('Eroare la actualizarea paginii donatorului:', error);
+        res.status(500).json({ message: 'Eroare la actualizarea paginii donatorului' });
+    }
+});
+
+
 
 
 
@@ -159,6 +173,9 @@ app.get("/acasaDonator", (req, res) => {
 
 app.get("/adresaDonatii", (req, res) => {
     res.render("adresaDonatii");
+});
+app.get('/salvareAdrese', (req, res) => {
+    res.status(405).send('Method Not Allowed'); 
 });
 
 app.post("/salvareAdrese", async (req, res) => {
