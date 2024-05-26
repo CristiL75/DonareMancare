@@ -10,7 +10,6 @@
 </head>
 <body>
     <h1>Bun venit, beneficiar!</h1>
-    <p>Username-ul tău este: <span id="loggedInUsername"></span></p>
     <div class="container">
         <h2>Adresa de Primire a Donațiilor:</h2>
         <input type="text" id="addressInput" placeholder="Introduceți adresa de primire a donațiilor">
@@ -169,27 +168,36 @@ window.addEventListener('load', initializePage);
 
 
 function removeAddress(address) {
-    // Identificăm adresa în lista de adrese și obținem indexul ei
     const index = addressList.findIndex(item => item.address === address);
     if (index !== -1) {
         const removedAddress = addressList[index];
         addressList.splice(index, 1); 
         displayAddressList(); 
 
-        // Actualizăm localStorage cu lista de adrese actualizată
         localStorage.setItem('addressList', JSON.stringify(addressList));
 
-        // Verificăm dacă există un marcaj asociat acestei adrese
         if (markers[index]) {
-            // Eliminăm marcajul corespunzător de pe hartă
             map.removeLayer(markers[index]);
             markers.splice(index, 1);
         }
 
-        // Afiseaza mesajul in terminal
-        console.log(`Adresa a fost ștearsă: ${removedAddress.address}`);
+        fetch('/removeAddress', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ address: removedAddress.address })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Adresa a fost ștearsă: ${removedAddress.address}`);
+        })
+        .catch(error => {
+            console.error('Eroare la ștergerea adresei din baza de date:', error);
+        });
     }
 }
+
 
         
 
